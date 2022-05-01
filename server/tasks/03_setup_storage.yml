@@ -1,0 +1,19 @@
+---
+- hosts: server
+  become: true
+
+  tasks:
+    - name: Create mountpoint
+      ansible.builtin.file:
+        state: directory
+        path: /mnt/data/
+        owner: marcin
+        group: marcin
+        mode: 777
+
+    - name: Add 1.5Tb disk to fstab
+      ansible.builtin.lineinfile:
+        path: /etc/fstab
+        state: present
+        regexp: "^/dev/disk/by-partuuid/996a42a4-9ace-c249-b384-298a7774f963"
+        line: "/dev/disk/by-partuuid/996a42a4-9ace-c249-b384-298a7774f963   /mnt/data/    ext4    defaults    0   1"

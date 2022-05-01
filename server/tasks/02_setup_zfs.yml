@@ -1,0 +1,44 @@
+---
+- hosts: server
+  become: true
+
+  tasks:
+    - name: install zfsutils
+      apt:
+        name: zfsutils-linux
+
+    - name: install smartmontools
+      apt:
+        name: smartmontools
+
+    - name: add disk aliases to zfs conf
+      ansible.builtin.copy:
+        src: files/etc/zfs/vdev_id.conf
+        dest: /etc/zfs/vdev_id.conf
+        owner: root
+
+    - name: reload udevadm rules
+      ansible.builtin.command:
+        cmd: "udevadm control --reload-rules"
+
+    - name: trigger udevadm
+      ansible.builtin.command:
+        cmd: "udevadm trigger"
+
+    - name: create tank zpool in mirror
+      ansible.builtin.command:
+        cmd: "zpool create tank mirror d01 d02"
+
+    - name: enable lz4 compression
+      ansible.builtin.command:
+        cmd: "zfs set compression=lz4 tank"
+
+    - name: Create media dir in tank
+      community.general.zfs:
+        name: tank/media
+        state: present
+
+    - name: Create nas dir in tank
+      community.general.zfs:
+        name: tank/nas
+        state: present

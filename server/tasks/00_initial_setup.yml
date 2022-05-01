@@ -1,0 +1,61 @@
+---
+- hosts: all
+  become: true
+
+  tasks:
+    - name: Create ansible worker user
+      ansible.builtin.user:
+        name: ansible_worker
+        groups: "sudo"
+        state: present
+
+    - name: Create .ssh dir in home dir
+      ansible.builtin.file:
+        state: directory
+        path: /home/ansible_worker/.ssh
+        owner: ansible_worker
+        group: ansible_worker
+        mode: 0700
+
+    - name: Copy ansible worker ssh key
+      ansible.builtin.copy:
+        src: ~/.ssh/ansible_worker.pub
+        dest: /home/ansible_worker/.ssh/authorized_keys
+        owner: ansible_worker
+        group: ansible_worker
+        mode: 0600
+
+    - name: Paswordless sudo for ansible worker
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        state: present
+        regexp: "^ansible_worker"
+        line: "ansible_worker ALL=(ALL) NOPASSWD: ALL"
+        insertafter: "%sudo	ALL=(ALL:ALL) ALL"
+        validate: "visudo -cf %s"
+
+    - name: Disable password login for ssh
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        state: present
+        regexp: "^#PasswordAuthentication"
+        line: "PasswordAuthentication no"
+
+    - name: Disable empty passwords for ssh
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        state: present
+        regexp: "^#PermitEmptyPasswords"
+        line: "PermitEmptyPasswords no"
+
+    - name: Disable root login for ssh
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        state: present
+        regexp: "^#PermitRootLogin"
+        line: "PermitRootLogin no"
+
+    - name: Restart sshd
+      service:
+        name: sshd
+        state: restarted
