@@ -1,0 +1,21 @@
+---
+- hosts: server
+  become: true
+
+  tasks:
+    - name: Install Samba
+      apt:
+        name: samba
+        state: present
+
+    - name: Copy samba conf file
+      ansible.builtin.copy:
+        src: files/etc/samba/smb.conf
+        dest: /etc/samba/smb.conf
+        owner: root
+        mode: 0644
+
+    - name: Restart samba
+      ansible.builtin.service:
+        name: smbd
+        state: restarted
