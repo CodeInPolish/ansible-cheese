@@ -38,21 +38,21 @@
       ansible.builtin.lineinfile:
         path: /etc/ssh/sshd_config
         state: present
-        regexp: "^#PasswordAuthentication"
+        regexp: "^^#*PasswordAuthentication\\s*\\w*"
         line: "PasswordAuthentication no"
 
     - name: Disable empty passwords for ssh
       ansible.builtin.lineinfile:
         path: /etc/ssh/sshd_config
         state: present
-        regexp: "^#PermitEmptyPasswords"
+        regexp: "^#*PermitEmptyPasswords\\s*\\w*"
         line: "PermitEmptyPasswords no"
 
     - name: Disable root login for ssh
       ansible.builtin.lineinfile:
         path: /etc/ssh/sshd_config
         state: present
-        regexp: "^#PermitRootLogin"
+        regexp: "^#*PermitRootLogin\\s*\\w*"
         line: "PermitRootLogin no"
 
     - name: Restart sshd
