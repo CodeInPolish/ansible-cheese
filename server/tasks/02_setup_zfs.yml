@@ -25,9 +25,15 @@
       ansible.builtin.command:
         cmd: "udevadm trigger"
 
+    - name: check if tank already exists
+      ansible.builtin.command: "zpool list -Ho name tank"
+      register: zpool_exists
+      ignore_errors: yes
+
     - name: create tank zpool in mirror
       ansible.builtin.command:
         cmd: "zpool create tank mirror d01 d02"
+      when: zpool_exists is failed
 
     - name: enable lz4 compression
       ansible.builtin.command:
