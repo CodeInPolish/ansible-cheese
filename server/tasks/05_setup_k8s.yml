@@ -1,0 +1,137 @@
+---
+- hosts: server
+  become: true
+
+  tasks:
+    - name: Disable swap
+      ansible.builtin.command: swapoff -a
+
+    - name: Remove swap from fstab
+      ansible.builtin.lineinfile:
+        dest: /etc/fstab
+        regexp: swap
+        state: absent
+
+    - name: Install Prerequisites for containerd & Kubernetes 
+      apt: 
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - vim
+          - software-properties-common
+        state: present
+
+    - name: Touch /etc/modules-load.d/containerd.conf
+      ansible.builtin.file:
+        path: /etc/modules-load.d/containerd.conf
+        state: touch
+
+    - name: Configure containerd modules
+      ansible.builtin.blockinfile:
+        path: /etc/modules-load.d/containerd.conf
+        block: |
+          overlay
+          br_netfilter
+
+    - name: Touch /etc/sysctl.d/99-lubernetes-cri.conf
+      ansible.builtin.file:
+        path: /etc/sysctl.d/99-lubernetes-cri.conf
+        state: touch
+
+    - name: Configure required sysctl params
+      ansible.builtin.blockinfile:
+        path: /etc/sysctl.d/99-lubernetes-cri.conf
+        block: |
+          net.bridge.bridge-nf-call-iptables  = 1
+          net.ipv4.ip_forward                 = 1
+          net.bridge.bridge-nf-call-ip6tables = 1
+
+    - name: Apply changes
+      ansible.builtin.command: sysctl --system
+
+    - name: Download runc
+      ansible.builtin.get_url: 
+        url: "https://github.com/opencontainers/runc/releases/download/v1.1.1/runc.amd64"
+        dest: /tmp/runc
+
+    - name: Install runc
+      ansible.builtin.command: install -m 755 /tmp/runc /usr/local/sbin/runc
+
+    - name: Download containerd.io binary
+      ansible.builtin.get_url:
+        dest: /tmp/containerd.tar.gz
+        url: "https://github.com/containerd/containerd/releases/download/v1.6.4/containerd-1.6.4-linux-amd64.tar.gz"
+
+    - name: Extract containerd.io
+      ansible.builtin.unarchive:
+        src: /tmp/containerd.tar.gz
+        dest: /usr/local
+        remote_src: yes
+
+    - name: Download & Install systemd containerd.io service
+      ansible.builtin.get_url:
+        url: "https://raw.githubusercontent.com/containerd/containerd/main/containerd.service"
+        dest: /etc/systemd/system/containerd.service
+
+    - name: Reload systemctl daemons
+      ansible.builtin.command: systemctl daemon-reload
+
+    - name: Comment out a problematic config in containerd
+      ansible.builtin.lineinfile:
+        path: /etc/containerd/config.toml
+        regexp: ^\s*disabled_plugins = \["cri"\]
+        line: "#disabled_plugins = [\"cri\"]"
+
+    - name: Enable & start containerd.io
+      ansible.builtin.service:
+        name: containerd
+        enabled: yes
+        state: restarted
+
+    - name: Add Google's official GPG key
+      apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present
+
+    - name: Add Kubernetes Repository
+      apt_repository:
+        repo: deb http://apt.kubernetes.io/ kubernetes-xenial main 
+        state: present
+        filename: kubernetes
+        mode: 0600
+
+    - name: Install Kubernetes
+      apt: 
+        name:
+          - kubeadm
+          - kubectl
+          - kubelet
+        state: present
+
+    - name: Enable service kubelet, and enable persistently
+      service: 
+        name: kubelet
+        enabled: yes
+        state: started
+
+    - name: Create cluster
+      ansible.builtin.command: kubeadm init --pod-network-cidr=192.168.0.0/16
+
+    - name: Untaint master to allow pod scheduling
+      ansible.builtin.command: kubectl taint nodes --all node-role.kubernetes.io/master-
+
+    - name: Setup dashboard
+      ansible.builtin.command: kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.5.1/aio/deploy/recommended.yaml
+
+    - name: Install Calico
+      command: kubectl create -f https://docs.projectcalico.org/manifests/tigera-operator.yaml
+
+    - name: Install resources
+      command: kubectl create -f https://docs.projectcalico.org/manifests/custom-resources.yaml
+  
+    - name: wait for pods to come up
+      shell: kubectl get pods -n calico-system -o json
+      register: kubectl_get_pods
+      until: kubectl_get_pods.stdout|from_json|json_query('items[*].status.phase')|unique == ["Running"]
