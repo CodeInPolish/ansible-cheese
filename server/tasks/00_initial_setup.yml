@@ -38,7 +38,7 @@
       ansible.builtin.lineinfile:
         path: /etc/ssh/sshd_config
         state: present
-        regexp: "^^#*PasswordAuthentication\\s*\\w*"
+        regexp: "^#*PasswordAuthentication\\s*\\w*"
         line: "PasswordAuthentication no"
 
     - name: Disable empty passwords for ssh
