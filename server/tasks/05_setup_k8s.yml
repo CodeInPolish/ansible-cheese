@@ -35,14 +35,14 @@
           overlay
           br_netfilter
 
-    - name: Touch /etc/sysctl.d/99-lubernetes-cri.conf
+    - name: Touch /etc/sysctl.d/99-kubernetes-cri.conf
       ansible.builtin.file:
-        path: /etc/sysctl.d/99-lubernetes-cri.conf
+        path: /etc/sysctl.d/99-kubernetes-cri.conf
         state: touch
 
     - name: Configure required sysctl params
       ansible.builtin.blockinfile:
-        path: /etc/sysctl.d/99-lubernetes-cri.conf
+        path: /etc/sysctl.d/99-kubernetes-cri.conf
         block: |
           net.bridge.bridge-nf-call-iptables  = 1
           net.ipv4.ip_forward                 = 1
