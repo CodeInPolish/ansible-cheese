@@ -15,8 +15,8 @@
       ansible.builtin.lineinfile:
         path: /etc/fstab
         state: present
-        regexp: "^/dev/disk/by-partuuid/996a42a4-9ace-c249-b384-298a7774f963"
-        line: "/dev/disk/by-partuuid/996a42a4-9ace-c249-b384-298a7774f963   /mnt/data/    ext4    defaults    0   1"
+        regexp: "^/dev/disk/by-partuuid/1f7c9e25-2b31-7347-a8b8-31425a8ba58f"
+        line: "/dev/disk/by-partuuid/1f7c9e25-2b31-7347-a8b8-31425a8ba58f   /mnt/data/    ext4    defaults    0   1"
 
     - name: Reown & Chmod it after mounting
       ansible.builtin.file:
