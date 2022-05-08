@@ -20,7 +20,7 @@
         path: /home/ansible_worker/.ssh
         owner: ansible_worker
         group: ansible_worker
-        mode: 0700
+        mode: 0744
 
     - name: Copy ansible worker ssh key
       ansible.builtin.copy:
@@ -28,7 +28,7 @@
         dest: /home/ansible_worker/.ssh/authorized_keys
         owner: ansible_worker
         group: ansible_worker
-        mode: 0600
+        mode: 0644
 
     - name: Paswordless sudo for ansible worker
       ansible.builtin.lineinfile:
