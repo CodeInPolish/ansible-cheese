@@ -3,6 +3,11 @@
   become: true
 
   tasks:
+    - name: Install sudo
+      ansible.builtin.apt:
+        name: sudo
+        state: present
+
     - name: Create ansible worker user
       ansible.builtin.user:
         name: ansible_worker

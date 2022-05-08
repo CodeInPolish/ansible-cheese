@@ -3,6 +3,39 @@
   become: true
 
   tasks:
+    - name: Remove enterprise repo bullshit enabled by default
+      ansible.builtin.file:
+        state: absent
+        path: /etc/apt/sources.list.d/pve-enterprise.list
+
+    - name: Remove default apt repos list
+      ansible.builtin.file:
+        state: absent
+        path: /etc/apt/sources.list
+
+    - name: Create apt repos list
+      ansible.builtin.file:
+        state: touch
+        path: /etc/apt/sources.list
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: Configure apt repos
+      ansible.builtin.blockinfile:
+        path: /etc/apt/sources.list
+        block: |
+          # Debian Packages
+          deb http://ftp.debian.org/debian bullseye main contrib
+          # Debian Packages
+          deb http://ftp.debian.org/debian bullseye-updates main contrib
+
+          # PVE pve-no-subscription repository provided by proxmox.com
+          deb http://download.proxmox.com/debian/pve bullseye pve-no-subscription
+
+          # security updates
+          deb http://security.debian.org/debian-security bullseye-security main contrib
+
     - name: Update apt cache & upgrade packages
       apt:
         upgrade: yes
